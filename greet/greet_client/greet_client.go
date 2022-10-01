@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/ChetanKolhe/grpc_calculator/greetpb"
@@ -21,7 +22,49 @@ func main() {
 	defer conn.Close()
 
 	c := greetpb.NewGreetServiceClient(conn)
+	doUniary(c)
+	doMultipResponse(c)
 
+	fmt.Printf("Connection is created %v", c)
+}
+
+func doMultipResponse(c greetpb.GreetServiceClient) {
+
+	greet := greetpb.Greeting{
+		FirstName: "Chetan",
+		LastName:  "Kolhe",
+	}
+
+	request := &greetpb.GreetManyTimeRequest{
+		Greeting: &greet,
+	}
+
+	response, err := c.GreetManyTime(context.Background(), request)
+
+	if err != nil {
+		log.Fatalf("Error Occur %v", err)
+	}
+
+	for {
+
+		msg, err := response.Recv()
+
+		if err == io.EOF {
+			// break the loop , read all the strem
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error Occured while reading the stream %v", err)
+		}
+
+		fmt.Printf("Response Stream : %v \n", msg.GetResult())
+	}
+
+	fmt.Println(response)
+
+}
+
+func doUniary(c greetpb.GreetServiceClient) {
 	greet := greetpb.Greeting{
 		FirstName: "Chetan",
 		LastName:  "Kolhe",
@@ -38,5 +81,5 @@ func main() {
 	}
 
 	fmt.Println(response)
-	fmt.Printf("Connection is created %v", c)
+
 }
