@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -44,6 +45,58 @@ func (*server) GreetManyTime(req *greetpb.GreetManyTimeRequest, stream greetpb.G
 	}
 
 	return nil
+}
+
+func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
+
+	fmt.Println("Reciving Client Stream Request ")
+	result := ""
+	for {
+		res, err := stream.Recv()
+
+		if err == io.EOF {
+			return stream.SendAndClose(&greetpb.LongGreetResponse{
+				Result: result,
+			})
+		}
+
+		if err != nil {
+			log.Fatalf("Error occur while serving client request %v", err)
+			return nil
+		}
+
+		firstName := res.GetGreet().GetFirstName()
+
+		result = "Hello " + firstName + "!"
+		fmt.Printf("Recived : %v \n", result)
+	}
+
+}
+
+func (*server) GreetEveryOne(stream greetpb.GreetService_GreetEveryOneServer) error {
+
+	fmt.Println("Reciving BiDi Stream Request ")
+	result := ""
+	for {
+		res, err := stream.Recv()
+
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			log.Fatalf("Error occur while serving client request %v", err)
+			return nil
+		}
+
+		firstName := res.GetGreet().GetFirstName()
+
+		result = "Hello " + firstName + "!"
+		fmt.Printf("Recived : %v \n", result)
+		stream.Send(&greetpb.GreetEveryoneResponse{
+			Result: result,
+		})
+	}
 }
 
 func main() {

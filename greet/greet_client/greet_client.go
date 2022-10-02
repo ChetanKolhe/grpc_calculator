@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/ChetanKolhe/grpc_calculator/greetpb"
 	"google.golang.org/grpc"
@@ -22,13 +24,92 @@ func main() {
 	defer conn.Close()
 
 	c := greetpb.NewGreetServiceClient(conn)
-	doUniary(c)
-	doMultipResponse(c)
+	// doUniary(c)
+	// doServerStreaming(c)
+	// doClientStreaming(c)
+	doBidiStreaming(c)
 
 	fmt.Printf("Connection is created %v", c)
 }
 
-func doMultipResponse(c greetpb.GreetServiceClient) {
+func doBidiStreaming(c greetpb.GreetServiceClient) {
+
+	stream, _ := c.GreetEveryOne(context.Background())
+
+	waitc := make(chan struct{})
+	// send data
+	go func() {
+		for i := 0; i < 10; i++ {
+
+			req := &greetpb.GreetEveryoneRequest{
+				Greet: &greetpb.Greeting{
+					FirstName: "chetan " + strconv.Itoa(i),
+					LastName:  "kolhe",
+				},
+			}
+
+			err := stream.Send(req)
+			if err != nil {
+				log.Fatalf("Error Occured to send value :%v", err)
+			}
+			time.Sleep(1000 * time.Microsecond)
+
+		}
+		stream.CloseSend()
+	}()
+
+	// recive data
+	go func() {
+		for {
+			response, err := stream.Recv()
+
+			if err == io.EOF {
+				fmt.Println("Channel is closed ")
+				break
+			}
+
+			if err != nil {
+				log.Fatalf("Not able to recive data : %v", err)
+				break
+			}
+
+			result := response.GetResult()
+
+			fmt.Printf("Result : %v \n", result)
+
+		}
+		close(waitc)
+	}()
+
+	<-waitc
+
+}
+
+func doClientStreaming(c greetpb.GreetServiceClient) {
+
+	stream, err := c.LongGreet(context.Background())
+	if err != nil {
+		log.Fatalf("Error Occured %v", stream)
+	}
+	for i := 0; i < 10; i++ {
+
+		request := &greetpb.LongGreetRequest{
+			Greet: &greetpb.Greeting{
+				FirstName: "Chetan" + strconv.Itoa(i),
+				LastName:  "Kolhe",
+			},
+		}
+
+		stream.Send(request)
+
+	}
+
+	result, _ := stream.CloseAndRecv()
+
+	fmt.Printf("Recived Result : %v \n", result)
+}
+
+func doServerStreaming(c greetpb.GreetServiceClient) {
 
 	greet := greetpb.Greeting{
 		FirstName: "Chetan",
