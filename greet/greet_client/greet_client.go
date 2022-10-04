@@ -10,6 +10,8 @@ import (
 
 	"github.com/ChetanKolhe/grpc_calculator/greetpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -27,7 +29,9 @@ func main() {
 	// doUniary(c)
 	// doServerStreaming(c)
 	// doClientStreaming(c)
-	doBidiStreaming(c)
+	// doBidiStreaming(c)
+	doDeadlineRequest(c, 5*time.Second)
+	doDeadlineRequest(c, 1*time.Second)
 
 	fmt.Printf("Connection is created %v", c)
 }
@@ -139,6 +143,44 @@ func doServerStreaming(c greetpb.GreetServiceClient) {
 		}
 
 		fmt.Printf("Response Stream : %v \n", msg.GetResult())
+	}
+
+	fmt.Println(response)
+
+}
+
+func doDeadlineRequest(c greetpb.GreetServiceClient, time time.Duration) {
+	greet := greetpb.Greeting{
+		FirstName: "Chetan",
+		LastName:  "Kolhe",
+	}
+
+	request := &greetpb.GreetDeadlineRequest{
+		Greeting: &greet,
+	}
+
+	ct := context.Background()
+	ct, cancel := context.WithTimeout(ct, time)
+	defer cancel()
+
+	response, err := c.GreetWithDeadline(ct, request)
+
+	if err != nil {
+
+		statusError, ok := status.FromError(err)
+
+		if ok {
+			fmt.Println(statusError.Proto().Message)
+
+			if statusError.Code() == codes.DeadlineExceeded {
+				fmt.Println("Timeout occur , Dead line exceed ")
+				fmt.Printf("Error from clint %v", statusError.Message())
+			}
+
+		} else {
+			log.Fatalf("Unexpected Error Occur %v", err)
+		}
+
 	}
 
 	fmt.Println(response)

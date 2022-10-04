@@ -11,10 +11,37 @@ import (
 
 	"github.com/ChetanKolhe/grpc_calculator/greetpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type server struct {
 	greetpb.UnimplementedGreetServiceServer
+}
+
+func (*server) GreetWithDeadline(ctx context.Context, req *greetpb.GreetDeadlineRequest) (*greetpb.GreetDeadlineResponse, error) {
+	fmt.Printf("Greet With Dead Line function invoked %v", req)
+
+	for i := 0; i < 3; i++ {
+
+		if ctx.Err() == context.DeadlineExceeded {
+			fmt.Println("Dead Line Exceded")
+
+			return nil, status.Errorf(
+				codes.DeadlineExceeded, "Dead Line Exceded",
+			)
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	firstName := req.GetGreeting().GetFirstName()
+	result := "Hello " + firstName
+
+	response := &greetpb.GreetDeadlineResponse{
+		Result: result,
+	}
+
+	return response, nil
 }
 
 func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.GreetResponse, error) {

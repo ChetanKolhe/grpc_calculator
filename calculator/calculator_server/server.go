@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"net"
 
 	"github.com/ChetanKolhe/grpc_calculator/calculator/calculatorpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type server struct {
@@ -15,7 +18,7 @@ type server struct {
 }
 
 func (*server) Sum(ctx context.Context, req *calculatorpb.SumRequest) (*calculatorpb.SumResponse, error) {
-	fmt.Println("Serving the Sum Request %v", req)
+	fmt.Printf("Serving the Sum Request %v", req)
 
 	result := req.GetFirstNumber() + req.SecondNumber
 
@@ -24,6 +27,21 @@ func (*server) Sum(ctx context.Context, req *calculatorpb.SumRequest) (*calculat
 	}
 
 	return response, nil
+}
+
+func (*server) SquareRoot(context context.Context, req *calculatorpb.SquareRootRequest) (*calculatorpb.SquareRootResponse, error) {
+	input_number := req.GetNumber()
+	fmt.Println("Recived Square root rpc ")
+	if input_number < 0 {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("Invalidi Argument is provided %v", input_number),
+		)
+	}
+
+	return &calculatorpb.SquareRootResponse{
+		NumberRoot: math.Sqrt(float64(input_number)),
+	}, nil
 }
 
 func main() {

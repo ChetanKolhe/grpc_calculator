@@ -12,6 +12,16 @@ message SumResponse {
     int32 sum_result = 1;
 }
 
+message SquareRootRequest {
+    int32  number = 1;
+}
+
+message SquareRootResponse {
+    double number_root = 1;
+}
 service CalculateService{
     rpc Sum(SumRequest) returns (SumResponse){};
+
+    // This rpc will throw the exception if number is negative 
+    rpc SquareRoot(SquareRootRequest) returns (SquareRootResponse) {};
 }

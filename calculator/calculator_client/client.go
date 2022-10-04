@@ -7,6 +7,7 @@ import (
 
 	"github.com/ChetanKolhe/grpc_calculator/calculator/calculatorpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -31,4 +32,29 @@ func main() {
 
 	fmt.Println(sum_result)
 	fmt.Printf("Connection is created %v", c)
+
+	calculateWithNegativeValue(c)
+}
+
+func calculateWithNegativeValue(c calculatorpb.CalculateServiceClient) {
+
+	res, err := c.SquareRoot(context.Background(), &calculatorpb.SquareRootRequest{
+		Number: -20,
+	})
+
+	respErr, ok := status.FromError(err)
+
+	if ok {
+		fmt.Println(respErr.Proto())
+		fmt.Println(respErr.Code())
+		fmt.Println(respErr.Err())
+		fmt.Println(respErr.String())
+		fmt.Println(respErr.Proto().Message)
+	} else {
+
+		log.Fatalf("Error Occur for this number %v", err)
+	}
+
+	fmt.Printf("Response :%v", res)
+
 }
